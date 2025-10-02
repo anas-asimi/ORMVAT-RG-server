@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .location-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            background-color: #2563eb;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .location-button:active {
+            background-color: #1d4ed8;
+        }
+
+        .location-icon {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <button class="location-button" onclick="locateUser()">
+        <svg class="location-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+        </svg>
+    </button>
+
+    <script>
+        const map = L.map('map').setView([32.294577425170004, -6.7027966781581165], 10);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        let userMarker = null;
+
+        function locateUser() {
+            // Send message to React Native to get location
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'getLocation' }));
+            } else {
+                // Fallback for web testing
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            updateUserLocation(position.coords.latitude, position.coords.longitude);
+                        },
+                        (error) => {
+                            alert('Unable to get location: ' + error.message);
+                        }
+                    );
+                }
+            }
+        }
+
+        function updateUserLocation(lat, lon) {
+            // Remove old marker if exists
+            if (userMarker) {
+                map.removeLayer(userMarker);
+            }
+
+            // Add new marker
+            userMarker = L.marker([lat, lon], {
+                icon: L.divIcon({
+                    className: 'user-location-marker',
+                    html: '<div style="background-color: #2563eb; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>',
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                })
+            }).addTo(map);
+
+            userMarker.bindPopup('Your Location').openPopup();
+
+            // Center map on user location
+            map.setView([lat, lon], 15);
+        }
+
+        // Listen for location updates from React Native
+        document.addEventListener('message', (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'locationUpdate') {
+                updateUserLocation(data.latitude, data.longitude);
+            }
+        });
+
+        window.addEventListener('message', (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'locationUpdate') {
+                updateUserLocation(data.latitude, data.longitude);
+            }
+        });
+
+
+
+        // Add P GeoJSON layer
+        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/P.geojson")
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function (feature) {
+                        return {
+                            weight: 1.5,
+                            color: 'blue',
+                        };
+                    },
+                }).addTo(map);
+            }).catch(error => console.error('Error loading P.geojson:', error));
+
+        // Add S GeoJSON layer
+        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/S.geojson")
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function (feature) {
+                        return {
+                            weight: 1.5,
+                            color: 'purple',
+                        };
+                    },
+                }).addTo(map);
+            }).catch(error => console.error('Error loading S.geojson:', error));
+
+        // Add T GeoJON layer
+        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/T.geojson")
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    style: function (feature) {
+                        return {
+                            weight: 1.5,
+                            color: 'darkgreen',
+                        };
+                    },
+                }).addTo(map);
+            }).catch(error => console.error('Error loading T.geojson:', error));
+
+        const ZOOM_THRESHOLD = 14;
+
+        // Function to update the marker's visibility
+        function updateMarkerVisibility() {
+            console.log("Zoom level changed");
+
+            const currentZoom = map.getZoom();
+            console.log("Current Zoom Level:", currentZoom);
+
+            const iconElements = document.getElementsByClassName('custom-annotation');
+            for (let iconElement of iconElements) {
+                if (iconElement) {
+                    if (currentZoom < ZOOM_THRESHOLD) {
+                        iconElement.style.visibility = 'hidden';
+                    } else {
+                        iconElement.style.visibility = 'visible';
+                    }
+                }
+            }
+        }
+
+        // add points from annotations.json
+        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/annotations.json")
+            .then(response => response.json())
+            .then(data => {
+                data.forEach(point => {
+                    let myTextIcon = L.divIcon({
+                        className: `${point.value}`, // Apply custom CSS for styling
+                        html: `<div class="custom-annotation" style="transform: rotate(${point.angleInDegrees - 90}deg); transform-origin: center center;visibility: hidden;">${point.value}</div>`,
+                        iconSize: [100, 20] // Adjust size as needed
+                    });
+                    const marker = L.marker([point.lat, point.lon], { icon: myTextIcon }).addTo(map);
+                });
+            }).catch(error => console.error('Error loading annotations:', error));
+
+        // Attach the function to the 'zoomend' event
+        map.on('zoomend', updateMarkerVisibility);
+    </script>
+</body>
+
+</html>
