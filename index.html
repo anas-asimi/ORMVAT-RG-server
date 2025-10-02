@@ -125,7 +125,7 @@
 
 
         // Add P GeoJSON layer
-        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/P.geojson")
+        fetch("https://anas-asimi.github.io/ORMVAT-RG-server/P.geojson")
             .then(response => response.json())
             .then(data => {
                 L.geoJSON(data, {
@@ -139,7 +139,7 @@
             }).catch(error => console.error('Error loading P.geojson:', error));
 
         // Add S GeoJSON layer
-        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/S.geojson")
+        fetch("https://anas-asimi.github.io/ORMVAT-RG-server/S.geojson")
             .then(response => response.json())
             .then(data => {
                 L.geoJSON(data, {
@@ -153,7 +153,7 @@
             }).catch(error => console.error('Error loading S.geojson:', error));
 
         // Add T GeoJON layer
-        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/T.geojson")
+        fetch("https://anas-asimi.github.io/ORMVAT-RG-server/T.geojson")
             .then(response => response.json())
             .then(data => {
                 L.geoJSON(data, {
@@ -188,7 +188,7 @@
         }
 
         // add points from annotations.json
-        fetch("https://raw.githubusercontent.com/anas-asimi/ORMVAT-RG/refs/heads/main/assets/annotations.json")
+        fetch("https://anas-asimi.github.io/ORMVAT-RG-server/annotations.json")
             .then(response => response.json())
             .then(data => {
                 data.forEach(point => {
